@@ -1,6 +1,7 @@
 "use client";
+import Image from "next/image";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
@@ -144,10 +145,14 @@ export default function Page() {
                 whileTap={{ scale: 0.9 }}
                 onClick={handleClick}
               >
-                <img
+                <Image
                   src="https://i.ibb.co/qRNLRRS/DALL-E-2024-10-01-04-49-07-A-simple-3-D-yellow-cube-filling-the-entire-image-with-no-background-The.webp"
                   alt="Clickable Squirrel"
                   className="w-full h-full object-cover rounded-full"
+                  width={500} // Set the appropriate width
+                  height={500} // Set the appropriate height
+                  layout="responsive" // This will help to maintain responsiveness
+                  objectFit="cover"
                 />
                 {isClicking && (
                   <motion.div
