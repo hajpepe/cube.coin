@@ -1,4 +1,7 @@
 "use client";
+
+/// <reference path="./telegram.d.ts" />
+
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -134,9 +137,9 @@ export default function Page() {
     switch (currentTab) {
       case "game":
         return (
-          <Card className="bg-gradient-to-br   from-neutral-500  to-gray-900 text-white  h-full">
+          <Card className=" border-0 rounded-none shadow-none text-white  h-full">
             <CardContent className="flex flex-col items-center justify-center h-full p-6">
-              <div className="text-8xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r  from-white to-yellow-400">
+              <div className="text-6xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r  from-white to-yellow-400">
                 {clicks}
               </div>
               <motion.div
@@ -146,18 +149,17 @@ export default function Page() {
                 onClick={handleClick}
               >
                 <Image
-                  src="https://i.ibb.co/qRNLRRS/DALL-E-2024-10-01-04-49-07-A-simple-3-D-yellow-cube-filling-the-entire-image-with-no-background-The.webp"
+                  src="https://i.ibb.co/DMRsZ0S/cube.png"
                   alt="Clickable Squirrel"
                   className="w-full h-full object-cover rounded-full"
                   width={500} // Set the appropriate width
                   height={500} // Set the appropriate height
-                  layout="responsive" // This will help to maintain responsiveness
                   objectFit="cover"
                 />
                 {isClicking && (
                   <motion.div
                     key={clicks} // Use clicks as a key to force a new animation each time
-                    className="absolute text-2xl font-bold text-white"
+                    className="absolute text-2xl font-bold  text-yellow-500"
                     initial={{
                       opacity: 1,
                       scale: 0.5,
@@ -274,9 +276,9 @@ export default function Page() {
   };
 
   return (
-    <div className="flex flex-col justify-center h-[99vh] bg-gradient-to-br from-neutral-500  to-gray-900 text-white">
-      <main className=" container mx-auto p-4 pb-20">{renderContent()}</main>
-      <nav className="fixed bottom-0  rounded-t-2xl  left-0 right-0 bg-gradient-to-r from-neutral-500  to-gray-900 bg-opacity-90 backdrop-blur-sm">
+    <div className="flex flex-col justify-center h-[100vh] bg-gradient-to-br from-neutral-500  to-gray-900 text-white">
+      <main className=" container mx-auto p-4 ">{renderContent()}</main>
+      <nav className="fixed  bottom-3  mx-3 rounded-2xl  left-0 right-0 bg-gradient-to-r from-10%  to-95% from-neutral-500  to-gray-900 bg-opacity-90 backdrop-blur-sm">
         <div className="container  mx-auto px-4">
           <ul className="flex justify-around items-center h-16">
             <li>
