@@ -23,6 +23,7 @@ import {
   Target,
   WalletIcon,
 } from "lucide-react";
+import { TonConnect } from "@tonconnect/sdk";
 
 // Placeholder for TON wallet connection function
 const connectWallet = async () => {
@@ -45,6 +46,7 @@ const fetchLeaderboard = async () => {
     { username: "Player3", clicks: 600 },
   ];
 };
+const tonConnect = new TonConnect();
 
 export default function Page() {
   const [clicks, setClicks] = useState(0);
@@ -54,8 +56,18 @@ export default function Page() {
     Array<{ username: string; clicks: number }>
   >([]);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [tonConnect, setTonConnect] = useState<TonConnect | null>(null);
+
   const [hasGamePass, setHasGamePass] = useState(false);
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // Initialize TonConnect only in client-side
+      const tonConnectInstance = new TonConnect();
+      setTonConnect(tonConnectInstance);
+    }
+  }, []);
 
   useEffect(() => {
     // Initialize Telegram Mini App if present
@@ -84,20 +96,24 @@ export default function Page() {
     setTimeout(() => setIsClicking(false), 300);
   };
 
+
   const handleConnectWallet = async () => {
+    if (!tonConnect) return;
+
     try {
-      const { address } = await connectWallet();
-      setWalletAddress(address);
-      toast({
-        title: "Wallet Connected",
-        description: `Connected to ${address}`,
-      });
+      const walletsList = await tonConnect.getWallets();
+      const wallet = walletsList[0];
+      
+      await tonConnect.connectWallet(wallet);
+
+      const connectedWallet = tonConnect.wallet;
+      if (connectedWallet) {
+        console.log("Wallet connected:", connectedWallet.account.address);
+      } else {
+        throw new Error("No wallet connected");
+      }
     } catch (error) {
-      toast({
-        title: "Connection Failed",
-        description: "Failed to connect wallet",
-        variant: "destructive",
-      });
+      console.error("Connection Failed", error);
     }
   };
   const handlePurchaseGamePass = async () => {
