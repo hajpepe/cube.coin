@@ -1,6 +1,4 @@
-"use client";
-
-/// <reference path="./telegram.d.ts" />
+'use client'
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -23,62 +21,42 @@ import {
   Target,
   WalletIcon,
 } from "lucide-react";
-import { TonConnect } from "@tonconnect/sdk";
+import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react';
+import { Providers } from '@/hooks/TonConnectProvider';
 
-// Placeholder for TON wallet connection function
-const connectWallet = async () => {
-  // Implement actual TON wallet connection here
-  return { address: "0x1234...5678" };
-};
-
-// Placeholder for game pass purchase function
 const purchaseGamePass = async (address: string) => {
-  // Implement actual game pass purchase logic here
+  // Simulating API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
   return { success: true };
 };
 
-// Placeholder for fetching leaderboard data
 const fetchLeaderboard = async () => {
-  // Implement actual leaderboard fetching logic here
+  // Simulating API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
   return [
     { username: "Player1", clicks: 1000 },
     { username: "Player2", clicks: 800 },
     { username: "Player3", clicks: 600 },
   ];
 };
-const tonConnect = new TonConnect();
 
-export default function Page() {
+function GameContent() {
   const [clicks, setClicks] = useState(0);
   const [isClicking, setIsClicking] = useState(false);
   const [currentTab, setCurrentTab] = useState("game");
-  const [leaderboard, setLeaderboard] = useState<
-    Array<{ username: string; clicks: number }>
-  >([]);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [tonConnect, setTonConnect] = useState<TonConnect | null>(null);
-
+  const [leaderboard, setLeaderboard] = useState<Array<{ username: string; clicks: number }>>([]);
   const [hasGamePass, setHasGamePass] = useState(false);
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Initialize TonConnect only in client-side
-      const tonConnectInstance = new TonConnect();
-      setTonConnect(tonConnectInstance);
-    }
-  }, []);
+  const address = useTonAddress();
 
   useEffect(() => {
-    // Initialize Telegram Mini App if present
     if (typeof window !== "undefined" && window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
     }
 
-    // Fetch initial leaderboard data
     fetchLeaderboard().then(setLeaderboard);
 
-    // Set up interval to refresh leaderboard every 30 seconds
     const leaderboardInterval = setInterval(() => {
       fetchLeaderboard().then(setLeaderboard);
     }, 30000);
@@ -96,28 +74,8 @@ export default function Page() {
     setTimeout(() => setIsClicking(false), 300);
   };
 
-
-  const handleConnectWallet = async () => {
-    if (!tonConnect) return;
-
-    try {
-      const walletsList = await tonConnect.getWallets();
-      const wallet = walletsList[0];
-      
-      await tonConnect.connectWallet(wallet);
-
-      const connectedWallet = tonConnect.wallet;
-      if (connectedWallet) {
-        console.log("Wallet connected:", connectedWallet.account.address);
-      } else {
-        throw new Error("No wallet connected");
-      }
-    } catch (error) {
-      console.error("Connection Failed", error);
-    }
-  };
   const handlePurchaseGamePass = async () => {
-    if (!walletAddress) {
+    if (!address) {
       toast({
         title: "Wallet Not Connected",
         description: "Please connect your wallet first",
@@ -127,7 +85,7 @@ export default function Page() {
     }
 
     try {
-      const { success } = await purchaseGamePass(walletAddress);
+      const { success } = await purchaseGamePass(address);
       if (success) {
         setHasGamePass(true);
         toast({
@@ -153,9 +111,9 @@ export default function Page() {
     switch (currentTab) {
       case "game":
         return (
-          <Card className=" border-0 rounded-none shadow-none text-white  h-full">
+          <Card className="border-0 rounded-none shadow-none text-white h-full">
             <CardContent className="flex flex-col items-center justify-center h-full p-6">
-              <div className="text-6xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r  from-white to-yellow-400">
+              <div className="text-6xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-yellow-400">
                 {clicks}
               </div>
               <motion.div
@@ -165,17 +123,16 @@ export default function Page() {
                 onClick={handleClick}
               >
                 <Image
-                  src="https://i.ibb.co/DMRsZ0S/cube.png"
+                  src="/placeholder.svg?height=500&width=500"
                   alt="Clickable Squirrel"
                   className="w-full h-full object-cover rounded-full"
-                  width={500} // Set the appropriate width
-                  height={500} // Set the appropriate height
-                  objectFit="cover"
+                  width={500}
+                  height={500}
                 />
                 {isClicking && (
                   <motion.div
-                    key={clicks} // Use clicks as a key to force a new animation each time
-                    className="absolute text-2xl font-bold  text-yellow-500"
+                    key={clicks}
+                    className="absolute text-2xl font-bold text-yellow-500"
                     initial={{
                       opacity: 1,
                       scale: 0.5,
@@ -204,7 +161,7 @@ export default function Page() {
         );
       case "leaderboard":
         return (
-          <Card className="bg-gradient-to-br from-neutral-500  to-gray-900 text-white">
+          <Card className="bg-gradient-to-br from-neutral-500 to-gray-900 text-white">
             <CardHeader>
               <CardTitle>Leaderboard</CardTitle>
             </CardHeader>
@@ -232,18 +189,15 @@ export default function Page() {
         );
       case "wallet":
         return (
-          <Card className="bg-gradient-to-br from-neutral-500  to-gray-900 text-white">
+          <Card className="bg-gradient-to-br from-neutral-500 to-gray-900 text-white">
             <CardHeader>
               <CardTitle>Wallet</CardTitle>
             </CardHeader>
             <CardContent>
-              {!walletAddress ? (
-                <Button onClick={handleConnectWallet}>
-                  <WalletIcon className="mr-2 h-4 w-4" /> Connect TON Wallet
-                </Button>
-              ) : (
-                <div>
-                  <p>Connected: {walletAddress}</p>
+              <TonConnectButton  />
+              {address && (
+                <div className="mt-4">
+                  <p>Connected: {address}</p>
                   <p>Clicks: {clicks}</p>
                   <p>Game Pass: {hasGamePass ? "Active" : "Inactive"}</p>
                   {!hasGamePass && (
@@ -258,7 +212,7 @@ export default function Page() {
         );
       case "invite":
         return (
-          <Card className="bg-gradient-to-br from-neutral-500  to-gray-900 text-white">
+          <Card className="bg-gradient-to-br from-neutral-500 to-gray-900 text-white">
             <CardHeader>
               <CardTitle>Invite Friends</CardTitle>
             </CardHeader>
@@ -272,7 +226,7 @@ export default function Page() {
         );
       case "quests":
         return (
-          <Card className="bg-gradient-to-br from-neutral-500  to-gray-900 text-white">
+          <Card className="bg-gradient-to-br from-neutral-500 to-gray-900 text-white">
             <CardHeader>
               <CardTitle>Quests</CardTitle>
             </CardHeader>
@@ -292,10 +246,10 @@ export default function Page() {
   };
 
   return (
-    <div className="flex flex-col justify-center h-[100vh] bg-gradient-to-br from-neutral-500  to-gray-900 text-white">
-      <main className=" container mx-auto p-4 ">{renderContent()}</main>
-      <nav className="fixed  bottom-3  mx-3 rounded-2xl  left-0 right-0 bg-gradient-to-r from-10%  to-95% from-neutral-500  to-gray-900 bg-opacity-90 backdrop-blur-sm">
-        <div className="container  mx-auto px-4">
+    <div className="flex flex-col justify-center min-h-screen bg-gradient-to-br from-neutral-500 to-gray-900 text-white">
+      <main className="container mx-auto p-4 flex-grow">{renderContent()}</main>
+      <nav className="fixed bottom-3 mx-3 rounded-2xl left-0 right-0 bg-gradient-to-r from-10% to-95% from-neutral-500 to-gray-900 bg-opacity-90 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
           <ul className="flex justify-around items-center h-16">
             <li>
               <button
@@ -358,5 +312,13 @@ export default function Page() {
         </div>
       </nav>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Providers>
+      <GameContent />
+    </Providers>
   );
 }
