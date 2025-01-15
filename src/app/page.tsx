@@ -21,23 +21,41 @@ import {
   Target,
   WalletIcon,
 } from "lucide-react";
-import { TonConnectButton, useTonAddress } from '@tonconnect/ui-react';
+import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { Providers } from '@/hooks/TonConnectProvider';
+import TonWeb from 'tonweb';
 
-const purchaseGamePass = async (address: string) => {
-  // Simulating API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return { success: true };
+const saveUserData = async (telegramId: string, clicks: number, tonAddress: string) => {
+  const response = await fetch('/api/save-user', {
+    method: 'POST',  // Ensure it's a POST request
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ telegramId, clicks, tonAddress }),  // Correctly formatted JSON body
+  });
+  return response.json();
 };
 
+
 const fetchLeaderboard = async () => {
-  // Simulating API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return [
-    { username: "Player1", clicks: 1000 },
-    { username: "Player2", clicks: 800 },
-    { username: "Player3", clicks: 600 },
-  ];
+  try {
+    const response = await fetch('/api/leaderboard');
+    if (!response.ok) throw new Error('Failed to fetch leaderboard');
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    return [];
+  }
+};
+const verifyPurchase = async (transactionHash: string, address: string) => {
+  const response = await fetch('/api/verify-purchase', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ transactionHash, address }),
+  });
+  return response.json();
 };
 
 function GameContent() {
@@ -47,22 +65,27 @@ function GameContent() {
   const [leaderboard, setLeaderboard] = useState<Array<{ username: string; clicks: number }>>([]);
   const [hasGamePass, setHasGamePass] = useState(false);
   const [clickPosition, setClickPosition] = useState({ x: 0, y: 0 });
+  const [telegramId, setTelegramId] = useState<string | null>(null);
+  const [tonAddress, setTonAddress] = useState<string | null>(null);
 
   const address = useTonAddress();
+  const [tonConnectUI] = useTonConnectUI();
+
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready();
-    }
-
-    fetchLeaderboard().then(setLeaderboard);
-
     const leaderboardInterval = setInterval(() => {
       fetchLeaderboard().then(setLeaderboard);
-    }, 30000);
-
+    }, 5000);
+  
     return () => clearInterval(leaderboardInterval);
   }, []);
+
+
+  useEffect(() => {
+    if (telegramId && address) {
+      saveUserData(telegramId, clicks, address);
+    }
+  }, [telegramId, address, clicks]);
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -70,7 +93,13 @@ function GameContent() {
     const y = event.clientY - rect.top;
     setClickPosition({ x, y });
     setIsClicking(true);
-    setClicks((prev) => prev + (hasGamePass ? 2 : 1));
+    setClicks((prev) => {
+      const newClicks = prev + (hasGamePass ? 2 : 1);
+      if (telegramId && address) {
+        saveUserData(telegramId, newClicks, address);
+      }
+      return newClicks;
+    });
     setTimeout(() => setIsClicking(false), 300);
   };
 
@@ -85,15 +114,35 @@ function GameContent() {
     }
 
     try {
-      const { success } = await purchaseGamePass(address);
-      if (success) {
-        setHasGamePass(true);
-        toast({
-          title: "Game Pass Purchased",
-          description: "You now have 2x clicking power!",
-        });
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 60 * 20,
+        messages: [
+          {
+            address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
+            amount: TonWeb.utils.toNano('1'),
+          },
+        ],
+      };
+
+      const result = await tonConnectUI.sendTransaction(transaction);
+
+      if (result) {
+        const { success } = await verifyPurchase(result.boc, address);
+        if (success) {
+          setHasGamePass(true);
+          toast({
+            title: "Game Pass Purchased",
+            description: "You now have 2x clicking power!",
+          });
+          if (telegramId) {
+            await saveUserData(telegramId, clicks, address);
+          }
+        } else {
+          throw new Error('Purchase verification failed');
+        }
       }
     } catch (error) {
+      console.error('Transaction error:', error);
       toast({
         title: "Purchase Failed",
         description: "Failed to purchase game pass",
@@ -107,11 +156,45 @@ function GameContent() {
     window.open(telegramBotLink, "_blank");
   };
 
+  const handleTelegramLogin = () => {
+    const botUsername = "Cbe_Coin_bot"; // Your bot's username
+    const redirectUri = encodeURIComponent(window.location.origin + "/api/auth/telegram"); // Redirect URI after login
+    const telegramLoginUrl = `https://telegram.me/${botUsername}?start=login&redirect_uri=${redirectUri}`;
+    window.location.href = telegramLoginUrl;
+  };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get("telegramId");
+    const address = urlParams.get("tonAddress");
+    const clicks = parseInt(urlParams.get("clicks") || "0", 10);
+
+    if (id && address) {
+      setTelegramId(id);
+      setTonAddress(address);
+      setClicks(clicks);
+      saveUserData(id, clicks, address)
+        .then(() => {
+          toast({
+            title: "User Data Saved",
+            description: "Your data has been saved successfully!",
+          });
+        })
+        .catch((error) => {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        });
+    }
+  }, []);
+
   const renderContent = () => {
     switch (currentTab) {
       case "game":
         return (
-          <Card className="border-0 rounded-none shadow-none text-white h-full">
+          <Card className="border-0  rounded-none shadow-none text-white h-[90vh] ">
             <CardContent className="flex flex-col items-center justify-center h-full p-6">
               <div className="text-6xl font-bold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-white to-yellow-400">
                 {clicks}
@@ -123,7 +206,7 @@ function GameContent() {
                 onClick={handleClick}
               >
                 <Image
-                  src="/placeholder.svg?height=500&width=500"
+                  src="/cube.png"
                   alt="Clickable Squirrel"
                   className="w-full h-full object-cover rounded-full"
                   width={500}
@@ -194,7 +277,7 @@ function GameContent() {
               <CardTitle>Wallet</CardTitle>
             </CardHeader>
             <CardContent>
-              <TonConnectButton  />
+              <TonConnectButton />
               {address && (
                 <div className="mt-4">
                   <p>Connected: {address}</p>
@@ -202,7 +285,7 @@ function GameContent() {
                   <p>Game Pass: {hasGamePass ? "Active" : "Inactive"}</p>
                   {!hasGamePass && (
                     <Button onClick={handlePurchaseGamePass} className="mt-4">
-                      Buy Game Pass (2x Clicks)
+                      Buy Game Pass (2x Clicks) - 1 TON
                     </Button>
                   )}
                 </div>
@@ -311,6 +394,7 @@ function GameContent() {
           </ul>
         </div>
       </nav>
+      <Button onClick={handleTelegramLogin}>Login with Telegram</Button>
     </div>
   );
 }

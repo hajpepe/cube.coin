@@ -1,17 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-
-          images: {
-            remotePatterns: [
-              {
-                protocol: 'https',
-                hostname: 'i.ibb.co',
-                port: '',
-                pathname: '/DMRsZ0S/**',
-              },
-            ],
-          },
-
+  reactStrictMode: true,
+  pageExtensions: ['ts', 'tsx', 'mdx'],
 };
 
 export default nextConfig;
