@@ -12,12 +12,11 @@ const telegramAuth = (req: NextApiRequest, res: NextApiResponse) => {
 
   // Check if the secret is defined
   if (!secret) {
-    console.error('Telegram bot token is not set');
-    return res.status(500).json({ message: 'Internal server error: Telegram bot token is not set' });
+    return res.status(500).json({ message: 'Telegram bot token is not set' });
   }
 
   // Validate the Telegram authentication response
-  const dataCheckString = `${id}\n${first_name}\n${last_name}\n${username}\n${photo_url}\n${auth_date}`;
+  const dataCheckString = `${id}\n${first_name}\n${last_name}\n${username}\n${photo_url}\n${auth_date}\n${secret}`;
   const hashCheck = crypto.createHmac('sha256', secret).update(dataCheckString).digest('hex');
 
   if (hash !== hashCheck) {
@@ -28,4 +27,4 @@ const telegramAuth = (req: NextApiRequest, res: NextApiResponse) => {
   res.redirect(`/page?telegramId=${id}&tonAddress=your_ton_address&clicks=0`); // Replace with actual TON address if available
 };
 
-export default telegramAuth;
+export default telegramAuth; 
