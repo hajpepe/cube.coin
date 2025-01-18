@@ -25,15 +25,30 @@ import { TonConnectButton, useTonAddress, useTonConnectUI } from '@tonconnect/ui
 import { Providers } from '@/hooks/TonConnectProvider';
 import TonWeb from 'tonweb';
 
-const saveUserData = async (telegramId: string, clicks: number, tonAddress: string) => {
-  const response = await fetch('/api/save-user', {
-    method: 'POST',  // Ensure it's a POST request
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ telegramId, clicks, tonAddress }),  // Correctly formatted JSON body
-  });
-  return response.json();
+const saveUserData = async (telegramId: string, telegramName: string, clicks: string) => {
+  try {
+    const response = await fetch('/api/save-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ telegramId, telegramName, clicks }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save user data');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error saving user data:', error);
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : 'An unexpected error occurred',
+      variant: "destructive",
+    });
+  }
 };
 
 
@@ -83,7 +98,7 @@ function GameContent() {
 
   useEffect(() => {
     if (telegramId && address) {
-      saveUserData(telegramId, clicks, address);
+      saveUserData(telegramId, clicks.toString(), address);
     }
   }, [telegramId, address, clicks]);
 
@@ -96,7 +111,7 @@ function GameContent() {
     setClicks((prev) => {
       const newClicks = prev + (hasGamePass ? 2 : 1);
       if (telegramId && address) {
-        saveUserData(telegramId, newClicks, address);
+        saveUserData(telegramId, newClicks.toString(), address);
       }
       return newClicks;
     });
@@ -135,7 +150,7 @@ function GameContent() {
             description: "You now have 2x clicking power!",
           });
           if (telegramId) {
-            await saveUserData(telegramId, clicks, address);
+            await saveUserData(telegramId, clicks.toString(), address);
           }
         } else {
           throw new Error('Purchase verification failed');
@@ -173,7 +188,7 @@ function GameContent() {
       setTelegramId(id);
       setTonAddress(address);
       setClicks(clicks);
-      saveUserData(id, clicks, address)
+      saveUserData(id, clicks.toString(), address)
         .then(() => {
           toast({
             title: "User Data Saved",
